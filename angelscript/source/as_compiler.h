@@ -324,11 +324,12 @@ protected:
 	bool hasCompileErrors;
 
 	int nextLabel;
+	int numLambdas;
 
-	asCVariableScope *variables;
-	asCBuilder *builder;
-	asCScriptEngine *engine;
-	asCScriptCode *script;
+	asCVariableScope  *variables;
+	asCBuilder        *builder;
+	asCScriptEngine   *engine;
+	asCScriptCode     *script;
 	asCScriptFunction *outFunc;
 
 	bool               m_isConstructor;

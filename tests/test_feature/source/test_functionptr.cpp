@@ -40,34 +40,33 @@ bool Test()
 			"funcdef void CB0(); \n"
 			"funcdef void CB1(int); \n"
 			"funcdef void CB2(int, int); \n"
+			"void call(CB1@) {} \n"
 			"void func() { \n"
 			"   CB0 @cb0 = function() {}; \n"
 			"   CB1 @cb1 = function(a) {}; \n"
 			"   CB2 @cb2 = function(a,b) {}; \n"
+			"   cast<CB0>(function(){}); \n"        // TODO: This should give an error, since the function is never used
+			//"   call(function(a) {}); \n" // TODO: This must work
 			"} \n");
 		r = mod->Build();
-		if( r >= 0 )
+		if( r < 0 )
 			TEST_FAILED;
 
-		if( bout.buffer != "name (4, 1) : Info    : Compiling void func()\n"
-						   "name (5, 26) : Error   : Anonymous functions (lambdas) are not yet supported\n"
-						   "name (6, 24) : Error   : Anonymous functions (lambdas) are not yet supported\n"
-						   "name (7, 24) : Error   : Anonymous functions (lambdas) are not yet supported\n" )
+		if( bout.buffer != "" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
 		}
 
 		// TODO: The keyword 'function' should not be reserved. Test "int c = function(a,b);". Should work normally
-		// TODO: Test "cast<CB0>(function(){})"
-		// TODO: Test "call(function(){})" where call is a function that takes a funcdef
 		// TODO: Test calling lambda function
 		// TODO: Test compiler error within lambda
+		// TODO: Test "function(){};". Stand-alone lambda should generate appropriate error
 		// TODO: Test error when lambda doesn't have enough parameters for funcdef
-		// TODO: Test error when lambda isn't used, i.e. standalone lambda
 		// TODO: Test error when attempting to call lambda through opCall post operator
 		// TODO: Test loading/saving bytecode with lambda
 		// TODO: Test using lambda functions in asIScriptModule::CompileFunction()
+		// TODO: Test using lambda functions in shared functions (the lambda's should be shared too)
 
 		engine->Release();
 	}

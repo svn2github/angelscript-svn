@@ -115,6 +115,8 @@ void asCCompiler::Reset(asCBuilder *builder, asCScriptCode *script, asCScriptFun
 	breakLabels.SetLength(0);
 	continueLabels.SetLength(0);
 
+	numLambdas = 0;
+
 	byteCode.ClearAll();
 }
 
@@ -530,8 +532,8 @@ int asCCompiler::CompileFunction(asCBuilder *builder, asCScriptCode *script, asC
 	// We need to parse the statement block now
 	asCScriptNode *blockBegin;
 
-	// If the function signature was implicit, e.g. virtual property
-	// accessor, then the received node already is the statement block
+	// If the function signature was implicit, e.g. virtual property accessor or
+	// lambda function, then the received node already is the statement block
 	if( func->nodeType != snStatementBlock )
 		blockBegin = func->lastChild;
 	else
@@ -5890,10 +5892,13 @@ asUINT asCCompiler::ImplicitConvLambdaToFunc(asSExprContext *ctx, const asCDataT
 
 	if( generateCode )
 	{
+		// Build a unique name for the anonymous function
+		asCString name;
+		name.Format("$%s$%d", outFunc->GetDeclaration(), numLambdas++);
+
 		// Register the lambda with the builder for later compilation
-		// TODO: Lambda: The name of the function should be the current function decl + '$' + a counter for when there are multiple lambdas
-		asCScriptFunction *func = builder->RegisterLambda(ctx->exprNode, funcDef, outFunc->GetDeclarationStr() + "$", outFunc->nameSpace);
-		asASSERT( funcDef->IsSignatureExceptNameEqual(func) );
+		asCScriptFunction *func = builder->RegisterLambda(ctx->exprNode, script, funcDef, name, outFunc->nameSpace);
+		asASSERT( func == 0 || funcDef->IsSignatureExceptNameEqual(func) );
 		ctx->bc.InstrPTR(asBC_FuncPtr, func);
 	}
 
@@ -8961,10 +8966,6 @@ int asCCompiler::CompileExpressionValue(asCScriptNode *node, asSExprContext *ctx
 		// Defer the evaluation of the function until it known where it 
 		// will be used, which is where the signature will be defined
 		ctx->SetLambda(vnode);
-
-		// TODO: Implement this
-		Error("Anonymous functions (lambdas) are not yet supported", vnode);
-		return -1;
 	}
 	else
 		asASSERT(false);

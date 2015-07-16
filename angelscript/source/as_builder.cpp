@@ -4129,14 +4129,32 @@ int asCBuilder::RegisterScriptFunctionFromNode(asCScriptNode *node, asCScriptCod
 	return RegisterScriptFunction(node, file, objType, isInterface, isGlobalFunction, ns, isExistingShared, isMixin, name, returnType, parameterNames, parameterTypes, inOutFlags, defaultArgs, isConstMethod, isConstructor, isDestructor, isPrivate, isProtected, isOverride, isFinal, isShared);
 }
 
-asCScriptFunction *asCBuilder::RegisterLambda(asCScriptNode * /*node*/, asCScriptFunction *funcDef, const asCString & /*name*/, asSNameSpace * /*ns*/)
+asCScriptFunction *asCBuilder::RegisterLambda(asCScriptNode *node, asCScriptCode *file, asCScriptFunction *funcDef, const asCString &name, asSNameSpace *ns)
 {
-	// TODO: lambda: Implement this
-	//               The function should be registered with the signature of funcDef, but with the specified name and namespace
-	//               The name of the function arguments should be gotten from the node
-	//               The function should be included as a global function in the module
-	//               The function should be added to the declared functions so it will be compiled afterwards
-	return funcDef;
+	// Get the parameter names from the node
+	asCArray<asCString> parameterNames;
+	asCArray<asCString*> defaultArgs;
+	asCScriptNode *args = node->firstChild;
+	while( args && args->nodeType == snIdentifier )
+	{
+		asCString argName;
+		argName.Assign(&file->code[args->tokenPos], args->tokenLength);
+		parameterNames.PushLast(argName);
+		defaultArgs.PushLast(0);
+		args = args->next;
+	}
+
+	// The statement block for the function must be disconnected, as the builder is going to be the owner of it
+	args->DisconnectParent();
+
+	// Get the return and parameter types from the funcDef
+	asCString funcName = name;
+	int r = RegisterScriptFunction(args, file, 0, 0, true, ns, false, false, funcName, funcDef->returnType, parameterNames, funcDef->parameterTypes, funcDef->inOutFlags, defaultArgs, false, false, false, false, false, false, false, false);
+	if( r < 0 )
+		return 0;
+
+	// Return the function that was just created (but that will be compiled later)
+	return engine->scriptFunctions[functions[functions.GetLength()-1]->funcId];
 }
 
 int asCBuilder::RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file, asCObjectType *objType, bool isInterface, bool isGlobalFunction, asSNameSpace *ns, bool isExistingShared, bool isMixin, asCString &name, asCDataType &returnType, asCArray<asCString> &parameterNames, asCArray<asCDataType> &parameterTypes, asCArray<asETypeModifiers> &inOutFlags, asCArray<asCString *> &defaultArgs, bool isConstMethod, bool isConstructor, bool isDestructor, bool isPrivate, bool isProtected, bool isOverride, bool isFinal, bool isShared)
